@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0e0d0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="NYC 2026">
+<title>NYC · 29.4 → 4.5 · 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,0..100&family=Bricolage+Grotesque:opsz,wght@12..96,300..700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root {
+  --bg:#f4f0e6; --bg-elev:#fbf8f0; --bg-card:#fefcf7; --bg-grain:rgba(0,0,0,.015);
+  --ink:#161616; --ink-soft:#4a4742; --ink-faded:#8a8680;
+  --accent:#c8442d; --accent-soft:#e6b8a8; --accent-bg:#fdf0ec;
+  --gold:#d68f3c; --gold-soft:#e8b76a; --gold-bg:#fdf4e3;
+  --rule:#d9d2bf; --rule-soft:#e6dfca;
+  --food:#c8442d; --view:#3a5f3a; --night:#2a1f3a; --break:#8a8680;
+  --skyline:#161616; --window-glow:#e8945a;
+  --serif:'Fraunces',Georgia,serif;
+  --sans:'Bricolage Grotesque',system-ui,-apple-system,sans-serif;
+  --mono:'JetBrains Mono',monospace;
+  --tap:48px;
+}
+@media (prefers-color-scheme:dark) {
+  :root {
+    --bg:#0a0908; --bg-elev:#15120e; --bg-card:#1a1612; --bg-grain:rgba(255,255,255,.02);
+    --ink:#f0ebe0; --ink-soft:#b5ad9e; --ink-faded:#6e685e;
+    --accent:#f15a3c; --accent-soft:#c8553d; --accent-bg:#2a1810;
+    --gold:#e8b76a; --gold-soft:#d68f3c; --gold-bg:#2a1f10;
+    --rule:#2a2620; --rule-soft:#1f1c17;
+    --food:#f15a3c; --view:#7ab87a; --night:#a892d4; --break:#6e685e;
+    --skyline:#000; --window-glow:#f5b870;
+  }
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html{-webkit-text-size-adjust:100%;scroll-behavior:smooth;overflow-x:hidden;}
+body{
+  font-family:var(--sans);
+  background:var(--bg);
+  background-image:
+    radial-gradient(circle at 1px 1px,var(--bg-grain) 1px,transparent 0);
+  background-size:4px 4px;
+  color:var(--ink);
+  line-height:1.5;
+  font-size:16px;
+  min-height:100vh;
+  padding-bottom:calc(80px + env(safe-area-inset-bottom));
+  overflow-x:hidden;
+}
+.wrap{max-width:760px;margin:0 auto;padding:0 20px;}
+
+/* SKYLINE SVG STYLES */
+.skyline-svg{display:block;width:100%;height:auto;color:var(--skyline);}
+.skyline-svg .glow{fill:var(--window-glow);}
+
+/* HERO */
+.hero{
+  position:relative;
+  padding:48px 0 0;
+  border-bottom:1px solid var(--rule);
+  overflow:hidden;
+}
+.hero-content{padding-bottom:140px;position:relative;z-index:2;}
+.hero-skyline{
+  position:absolute;
+  bottom:0;left:0;right:0;
+  width:100%;
+  pointer-events:none;
+  z-index:1;
+  opacity:.85;
+}
+@media (prefers-color-scheme:light){
+  .hero-skyline{opacity:.92;}
+}
+.hero-skyline svg{display:block;width:100%;height:auto;}
+.hero-sun{
+  position:absolute;
+  bottom:90px;right:8%;
+  width:140px;height:140px;
+  background:radial-gradient(circle,var(--gold-soft) 0%,var(--accent) 45%,transparent 70%);
+  border-radius:50%;
+  z-index:0;
+  filter:blur(4px);
+  opacity:.55;
+}
+@media (prefers-color-scheme:dark){
+  .hero-sun{opacity:.4;}
+}
+.hero-meta{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);margin-bottom:20px;display:flex;align-items:center;gap:12px;}
+.hero-meta::before{content:'';width:24px;height:1px;background:var(--accent);}
+.hero h1{font-family:var(--serif);font-weight:350;font-variation-settings:'opsz' 144,'SOFT' 50;font-size:clamp(48px,13vw,96px);line-height:.92;letter-spacing:-.04em;margin-bottom:16px;}
+.hero h1 em{font-style:italic;font-weight:400;font-variation-settings:'opsz' 144,'SOFT' 100;background:linear-gradient(90deg,var(--accent),var(--gold));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}
+.hero-dates{font-family:var(--mono);font-size:12px;color:var(--ink-soft);letter-spacing:.05em;margin-bottom:20px;line-height:1.6;}
+.hero-lede{font-family:var(--serif);font-size:clamp(16px,4.2vw,20px);line-height:1.45;font-weight:350;color:var(--ink-soft);max-width:32em;font-variation-settings:'opsz' 24;}
+
+/* STICKY NAV */
+.daynav{
+  position:sticky;top:0;z-index:100;
+  background:var(--bg);
+  background-image:radial-gradient(circle at 1px 1px,var(--bg-grain) 1px,transparent 0);
+  background-size:4px 4px;
+  border-bottom:1px solid var(--rule);
+  margin:0 -20px;padding:12px 0;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+}
+.daynav-scroll{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 20px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
+.daynav-scroll::-webkit-scrollbar{display:none;}
+.daynav-btn{
+  flex-shrink:0;scroll-snap-align:start;background:transparent;
+  border:1.5px solid var(--rule);border-radius:100px;
+  padding:10px 16px;min-height:40px;
+  font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-soft);cursor:pointer;
+  transition:all .2s;white-space:nowrap;
+}
+.daynav-btn:active{transform:scale(.96);}
+.daynav-btn.active{
+  background:var(--ink);color:var(--bg);border-color:var(--ink);
+  box-shadow:0 0 0 3px var(--gold-bg);
+}
+
+/* SKYLINE DIVIDER between days */
+.sky-divider{
+  display:block;width:100%;
+  margin:0;padding:0;
+  color:var(--ink-faded);
+  opacity:.55;
+}
+@media (prefers-color-scheme:dark){
+  .sky-divider{opacity:.7;}
+}
+
+/* DAY */
+.day{padding:48px 0 32px;border-bottom:1px solid var(--rule);scroll-margin-top:72px;animation:fadeUp .5s ease backwards;}
+.day:nth-child(2){animation-delay:.05s;}
+.day-header{display:flex;align-items:flex-start;gap:16px;margin-bottom:8px;flex-wrap:wrap;position:relative;}
+.day-num{
+  font-family:var(--serif);font-weight:300;
+  font-variation-settings:'opsz' 144;
+  font-size:clamp(64px,16vw,108px);
+  line-height:.85;letter-spacing:-.04em;
+  background:linear-gradient(160deg,var(--accent) 0%,var(--gold) 100%);
+  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  position:relative;
+}
+.day-info{flex:1;min-width:180px;padding-top:8px;}
+.day-date{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-faded);margin-bottom:8px;}
+.day-title{font-family:var(--serif);font-weight:400;font-variation-settings:'opsz' 24,'SOFT' 30;font-size:clamp(20px,5vw,26px);line-height:1.2;letter-spacing:-.01em;}
+.day-narrative{font-family:var(--serif);font-size:15px;line-height:1.55;color:var(--ink-soft);margin:16px 0 24px;font-variation-settings:'opsz' 16;font-style:italic;}
+
+/* DAY CONTROLS */
+.day-controls{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap;}
+.dc-btn{
+  background:var(--bg-card);border:1px solid var(--rule);border-radius:100px;
+  padding:8px 14px;min-height:36px;
+  font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-soft);cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+}
+.dc-btn:active{transform:scale(.96);}
+.dc-btn svg{width:12px;height:12px;}
+
+/* MAP */
+.map{
+  width:100%;height:280px;background:var(--bg-elev);
+  border:1px solid var(--rule);border-radius:8px;
+  margin-bottom:20px;position:relative;overflow:hidden;
+}
+.map.loading::before{
+  content:'Caricamento mappa…';position:absolute;inset:0;display:flex;
+  align-items:center;justify-content:center;font-family:var(--mono);font-size:11px;
+  color:var(--ink-faded);letter-spacing:.12em;text-transform:uppercase;
+}
+.leaflet-container{background:var(--bg-elev);font-family:var(--sans);}
+.pin-marker{
+  background:var(--ink);color:var(--bg);width:30px;height:30px;
+  border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-family:var(--mono);font-size:13px;font-weight:600;
+  border:2.5px solid var(--bg);box-shadow:0 2px 10px rgba(0,0,0,.4);
+}
+.pin-marker.food{background:var(--food);}
+.pin-marker.view{background:var(--view);}
+.pin-marker.night{background:var(--night);}
+.pin-marker.brk{background:var(--break);}
+
+/* STOP CARDS */
+.stops{display:flex;flex-direction:column;gap:0;}
+.stop{
+  display:grid;grid-template-columns:auto 1fr;gap:14px;
+  padding:18px 20px;margin:0 -20px;
+  border-top:1px solid var(--rule-soft);
+  cursor:pointer;
+  transition:background .15s;
+  min-height:var(--tap);
+  position:relative;
+}
+.stop:active{background:var(--bg-elev);}
+.stop:first-of-type{border-top:1px solid var(--rule);}
+.stop.is-break{opacity:.6;}
+.stop-icon{
+  width:36px;height:36px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bg-card);border:1.5px solid var(--rule);
+  flex-shrink:0;
+}
+.stop-icon svg{width:16px;height:16px;color:var(--ink-soft);}
+.stop-icon.food{background:var(--accent-bg);border-color:var(--accent-soft);}
+.stop-icon.food svg{color:var(--food);}
+.stop-icon.view svg{color:var(--view);}
+.stop-icon.night svg{color:var(--night);}
+.stop-body{min-width:0;}
+.stop-meta-top{display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap;}
+.stop-time{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--accent);}
+.stop-dur{font-family:var(--mono);font-size:10px;color:var(--ink-faded);letter-spacing:.05em;}
+.stop-tag{
+  font-family:var(--mono);font-size:9px;font-weight:600;
+  letter-spacing:.1em;text-transform:uppercase;
+  padding:3px 8px;border-radius:100px;
+  background:var(--bg-card);color:var(--ink-faded);border:1px solid var(--rule);
+}
+.stop-tag.must{background:var(--accent-bg);color:var(--accent);border-color:var(--accent-soft);}
+.stop-tag.book{background:var(--gold-bg);color:var(--gold);border-color:var(--gold-soft);}
+.stop-name{
+  font-family:var(--serif);font-size:clamp(19px,4.8vw,23px);font-weight:450;
+  font-variation-settings:'opsz' 24,'SOFT' 40;line-height:1.2;letter-spacing:-.01em;
+  margin-bottom:4px;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;
+}
+.stop-type{
+  font-family:var(--mono);font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--ink-faded);
+}
+.xi{
+  flex-shrink:0;width:20px;height:20px;border-radius:50%;
+  background:var(--bg-card);border:1px solid var(--rule);
+  position:relative;margin-top:4px;transition:transform .25s ease,background .15s;
+}
+.xi::before,.xi::after{content:'';position:absolute;background:var(--ink-soft);}
+.xi::before{left:5px;right:5px;top:9px;height:2px;}
+.xi::after{top:5px;bottom:5px;left:9px;width:2px;transition:opacity .25s;}
+.stop.open .xi{transform:rotate(45deg);background:var(--accent);}
+.stop.open .xi::before,.stop.open .xi::after{background:var(--bg);}
+
+.stop-details{margin-top:14px;display:none;animation:slideDown .3s ease;}
+.stop.open .stop-details{display:block;}
+.stop-note{
+  font-family:var(--serif);font-size:15.5px;line-height:1.6;color:var(--ink);
+  font-variation-settings:'opsz' 16;margin-bottom:14px;
+}
+.stop-addr{
+  font-family:var(--mono);font-size:11px;color:var(--ink-soft);
+  margin-bottom:14px;display:flex;align-items:center;gap:6px;
+}
+.stop-addr::before{content:'◉';color:var(--accent);}
+.tip-box{
+  background:var(--bg-elev);border-left:3px solid var(--accent);
+  padding:12px 14px;margin-bottom:14px;border-radius:0 6px 6px 0;
+}
+.tip-label{
+  font-family:var(--mono);font-size:9px;letter-spacing:.15em;text-transform:uppercase;
+  color:var(--accent);font-weight:600;margin-bottom:6px;
+}
+.tip-content{font-family:var(--serif);font-size:14px;line-height:1.5;color:var(--ink-soft);font-variation-settings:'opsz' 14;}
+.maps-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  background:var(--ink);color:var(--bg);border:none;
+  font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+  text-transform:uppercase;font-weight:600;
+  padding:12px 18px;min-height:var(--tap);border-radius:100px;
+  text-decoration:none;transition:all .15s;
+}
+.maps-btn:active{transform:scale(.96);background:var(--accent);}
+.maps-btn::before{content:'↗';font-size:14px;}
+
+/* CONTEXTUAL BOXES (snacks, rain, backups) */
+.ctx-group{
+  margin-top:32px;
+  display:flex;flex-direction:column;gap:14px;
+}
+.ctx{
+  border-radius:10px;
+  padding:18px 20px;
+  border:1px solid var(--rule);
+  background:var(--bg-card);
+  position:relative;
+  overflow:hidden;
+}
+.ctx-header{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:12px;
+}
+.ctx-icon{
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.ctx-icon svg{width:14px;height:14px;}
+.ctx-label{
+  font-family:var(--mono);font-size:10px;font-weight:600;
+  letter-spacing:.15em;text-transform:uppercase;
+  color:var(--ink-faded);
+}
+.ctx-title{
+  font-family:var(--serif);font-size:18px;font-weight:450;
+  font-variation-settings:'opsz' 24,'SOFT' 40;
+  letter-spacing:-.01em;
+  margin-bottom:10px;line-height:1.25;
+}
+.ctx-body{
+  font-family:var(--serif);font-size:14.5px;line-height:1.6;
+  color:var(--ink-soft);font-variation-settings:'opsz' 14;
+}
+.ctx-body strong{color:var(--ink);font-weight:600;}
+
+/* RAIN */
+.ctx.ctx-rain{
+  background:linear-gradient(135deg,var(--bg-card) 0%,#eef3f7 100%);
+  border-color:#c8d4dd;
+}
+@media (prefers-color-scheme:dark){
+  .ctx.ctx-rain{background:linear-gradient(135deg,var(--bg-card) 0%,#1a2028 100%);border-color:#2a3540;}
+}
+.ctx.ctx-rain .ctx-icon{background:#dde7ee;color:#3a5a78;}
+@media (prefers-color-scheme:dark){.ctx.ctx-rain .ctx-icon{background:#2a3540;color:#7ba0c4;}}
+.ctx.ctx-rain .ctx-label{color:#3a5a78;}
+@media (prefers-color-scheme:dark){.ctx.ctx-rain .ctx-label{color:#7ba0c4;}}
+
+/* SNACK */
+.ctx.ctx-snack{background:linear-gradient(135deg,var(--bg-card) 0%,var(--gold-bg) 100%);border-color:var(--gold-soft);}
+.ctx.ctx-snack .ctx-icon{background:var(--gold-bg);color:var(--gold);}
+.ctx.ctx-snack .ctx-label{color:var(--gold);}
+.snack-list{list-style:none;display:flex;flex-direction:column;gap:10px;margin-top:6px;}
+.snack-list li{font-family:var(--serif);font-size:14.5px;line-height:1.45;color:var(--ink);font-variation-settings:'opsz' 16;}
+.snack-list strong{font-weight:600;}
+.snack-list small{display:block;font-family:var(--mono);font-size:10px;color:var(--ink-faded);margin-top:2px;letter-spacing:.05em;}
+.snack-zone-tag{
+  display:inline-block;font-family:var(--mono);font-size:9px;font-weight:600;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--gold);
+  margin-bottom:4px;
+}
+
+/* BACKUP */
+.ctx.ctx-backup{background:linear-gradient(135deg,var(--bg-card) 0%,var(--accent-bg) 100%);border-color:var(--accent-soft);}
+.ctx.ctx-backup .ctx-icon{background:var(--accent-bg);color:var(--accent);}
+.ctx.ctx-backup .ctx-label{color:var(--accent);}
+.bk-list{display:flex;flex-direction:column;}
+.bk{padding:14px 0;border-top:1px solid var(--rule-soft);}
+.bk:first-child{padding-top:6px;border-top:none;}
+.bk:last-child{padding-bottom:0;}
+.bk-when{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);margin-bottom:6px;font-weight:600;}
+.bk-then{font-family:var(--serif);font-size:14.5px;line-height:1.45;font-variation-settings:'opsz' 16;color:var(--ink);}
+
+/* FAB SCROLL TOP */
+.fab{
+  position:fixed;bottom:calc(20px + env(safe-area-inset-bottom));right:20px;
+  width:48px;height:48px;border-radius:50%;
+  background:var(--ink);color:var(--bg);border:none;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;z-index:90;
+  box-shadow:0 4px 16px rgba(0,0,0,.2),0 0 0 4px var(--gold-bg);
+  transition:all .25s;opacity:0;pointer-events:none;transform:translateY(8px);
+}
+.fab.visible{opacity:1;pointer-events:auto;transform:translateY(0);}
+.fab:active{transform:scale(.92);}
+.fab svg{width:20px;height:20px;}
+
+/* FOOTER */
+footer{
+  padding:48px 0 24px;
+  font-family:var(--mono);font-size:10px;
+  letter-spacing:.15em;text-transform:uppercase;
+  color:var(--ink-faded);text-align:center;
+  position:relative;
+}
+footer .footer-skyline{
+  width:100%;
+  height:auto;
+  margin-bottom:24px;
+  color:var(--ink-faded);
+  opacity:.4;
+}
+footer p+p{margin-top:8px;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes slideDown{from{opacity:0;max-height:0;}to{opacity:1;max-height:1200px;}}
+@keyframes twinkle{0%,100%{opacity:.6;}50%{opacity:1;}}
+.hero-skyline .twinkle{animation:twinkle 3s ease-in-out infinite;}
+.hero-skyline .twinkle.t2{animation-delay:.7s;}
+.hero-skyline .twinkle.t3{animation-delay:1.4s;}
+.hero-skyline .twinkle.t4{animation-delay:2.1s;}
+
+/* Print fallback */
+@media print{
+  .daynav,.fab,.map,.day-controls,.hero-skyline,.hero-sun,.sky-divider,.footer-skyline{display:none;}
+  .stop-details{display:block!important;}
+  body{background:white;color:black;}
+}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap hero-content">
+    <div class="hero-meta">Itinerario · 6 giorni · 35 tappe</div>
+    <h1>New <em>York</em></h1>
+    <div class="hero-dates">29 APR — 4 MAG · 2026<br>MIDTOWN WEST · 330 W 40TH ST</div>
+    <p class="hero-lede">Sei giorni costruiti su una sequenza ricorrente: giorno → tramonto → notte. Tra una cosa e l'altra, esplorazione di quartieri per zone.</p>
+  </div>
+  <div class="hero-sun"></div>
+  <div class="hero-skyline">
+    <!-- NYC skyline silhouette: One WTC, Empire State, Chrysler, Hudson Yards, Top of the Rock + window lights -->
+    <svg class="skyline-svg" viewBox="0 0 1200 200" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYEnd meet" aria-hidden="true">
+      <!-- Buildings silhouette -->
+      <path fill="currentColor" d="M0,200 L0,150 L40,150 L40,135 L70,135 L70,160 L95,160 L95,120 L115,120 L115,105 L135,105 L135,130 L155,130 L155,90 L168,90 L168,70 L172,70 L172,40 L176,40 L176,70 L188,70 L188,95 L210,95 L210,135 L230,135 L230,115 L260,115 L260,150 L290,150 L290,125 L315,125 L315,105 L335,105 L335,80 L350,80 L350,55 L355,55 L355,30 L360,30 L360,55 L375,55 L375,90 L395,90 L395,120 L420,120 L420,95 L440,95 L440,135 L470,135 L470,150 L495,150 L495,110 L515,110 L515,80 L530,80 L530,60 L535,60 L535,30 L538,30 L538,8 L541,8 L541,30 L545,30 L545,60 L555,60 L555,90 L575,90 L575,135 L600,135 L600,115 L625,115 L625,95 L650,95 L650,75 L665,75 L665,55 L670,55 L670,25 L673,25 L673,55 L685,55 L685,90 L705,90 L705,125 L730,125 L730,150 L755,150 L755,130 L780,130 L780,105 L800,105 L800,75 L815,75 L815,95 L840,95 L840,120 L865,120 L865,140 L885,140 L885,110 L905,110 L905,135 L930,135 L930,155 L955,155 L955,125 L975,125 L975,95 L995,95 L995,115 L1015,115 L1015,140 L1040,140 L1040,125 L1060,125 L1060,150 L1085,150 L1085,130 L1110,130 L1110,160 L1140,160 L1140,140 L1170,140 L1170,170 L1200,170 L1200,200 Z"/>
+      <!-- Antennas/spires -->
+      <line x1="174" y1="40" x2="174" y2="20" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="357.5" y1="30" x2="357.5" y2="10" stroke="currentColor" stroke-width="1.5"/>
+      <line x1="539.5" y1="8" x2="539.5" y2="-2" stroke="currentColor" stroke-width="1.2"/>
+      <line x1="671.5" y1="25" x2="671.5" y2="5" stroke="currentColor" stroke-width="1.5"/>
+      <!-- Window lights (random scatter, golden) -->
+      <g class="glow">
+        <rect class="twinkle" x="50" y="155" width="3" height="4"/>
+        <rect x="62" y="160" width="3" height="4"/>
+        <rect class="twinkle t2" x="78" y="142" width="3" height="4"/>
+        <rect x="88" y="148" width="3" height="4"/>
+        <rect x="100" y="128" width="3" height="4"/>
+        <rect class="twinkle t3" x="120" y="115" width="3" height="4"/>
+        <rect x="142" y="138" width="3" height="4"/>
+        <rect x="162" y="98" width="3" height="4"/>
+        <rect class="twinkle" x="180" y="80" width="3" height="4"/>
+        <rect x="195" y="105" width="3" height="4"/>
+        <rect x="218" y="112" width="3" height="4"/>
+        <rect class="twinkle t4" x="240" y="125" width="3" height="4"/>
+        <rect x="270" y="135" width="3" height="4"/>
+        <rect x="295" y="138" width="3" height="4"/>
+        <rect class="twinkle t2" x="322" y="115" width="3" height="4"/>
+        <rect x="342" y="92" width="3" height="4"/>
+        <rect x="365" y="68" width="3" height="4"/>
+        <rect class="twinkle" x="382" y="100" width="3" height="4"/>
+        <rect x="405" y="108" width="3" height="4"/>
+        <rect x="425" y="115" width="3" height="4"/>
+        <rect class="twinkle t3" x="448" y="142" width="3" height="4"/>
+        <rect x="478" y="125" width="3" height="4"/>
+        <rect x="500" y="120" width="3" height="4"/>
+        <rect class="twinkle" x="520" y="92" width="3" height="4"/>
+        <rect x="540" y="42" width="3" height="4"/>
+        <rect class="twinkle t4" x="540" y="72" width="3" height="4"/>
+        <rect x="558" y="100" width="3" height="4"/>
+        <rect x="582" y="118" width="3" height="4"/>
+        <rect x="608" y="125" width="3" height="4"/>
+        <rect class="twinkle t2" x="632" y="105" width="3" height="4"/>
+        <rect x="655" y="85" width="3" height="4"/>
+        <rect x="675" y="38" width="3" height="4"/>
+        <rect class="twinkle t3" x="675" y="68" width="3" height="4"/>
+        <rect x="692" y="100" width="3" height="4"/>
+        <rect x="715" y="115" width="3" height="4"/>
+        <rect class="twinkle" x="740" y="138" width="3" height="4"/>
+        <rect x="765" y="118" width="3" height="4"/>
+        <rect x="788" y="118" width="3" height="4"/>
+        <rect class="twinkle t4" x="808" y="88" width="3" height="4"/>
+        <rect x="828" y="105" width="3" height="4"/>
+        <rect x="852" y="128" width="3" height="4"/>
+        <rect class="twinkle t2" x="875" y="135" width="3" height="4"/>
+        <rect x="895" y="120" width="3" height="4"/>
+        <rect x="920" y="125" width="3" height="4"/>
+        <rect class="twinkle t3" x="945" y="148" width="3" height="4"/>
+        <rect x="965" y="115" width="3" height="4"/>
+        <rect x="985" y="105" width="3" height="4"/>
+        <rect class="twinkle" x="1005" y="125" width="3" height="4"/>
+        <rect x="1028" y="132" width="3" height="4"/>
+        <rect x="1050" y="138" width="3" height="4"/>
+        <rect class="twinkle t4" x="1075" y="142" width="3" height="4"/>
+        <rect x="1098" y="138" width="3" height="4"/>
+        <rect x="1125" y="155" width="3" height="4"/>
+        <rect class="twinkle t2" x="1155" y="155" width="3" height="4"/>
+      </g>
+    </svg>
+  </div>
+</header>
+
+<nav class="daynav">
+  <div class="wrap">
+    <div class="daynav-scroll" id="daynav"></div>
+  </div>
+</nav>
+
+<main class="wrap" id="days"></main>
+
+<footer class="wrap">
+  <!-- Mini skyline divider for footer -->
+  <svg class="footer-skyline" viewBox="0 0 600 40" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYEnd meet" aria-hidden="true">
+    <path fill="currentColor" d="M0,40 L0,32 L20,32 L20,28 L40,28 L40,22 L55,22 L55,16 L60,16 L60,8 L62,8 L62,16 L75,16 L75,24 L95,24 L95,18 L110,18 L110,28 L130,28 L130,14 L140,14 L140,4 L142,4 L142,14 L155,14 L155,22 L175,22 L175,30 L195,30 L195,18 L215,18 L215,26 L240,26 L240,16 L260,16 L260,28 L280,28 L280,20 L298,20 L298,10 L302,10 L302,2 L304,2 L304,10 L308,10 L308,20 L325,20 L325,28 L345,28 L345,18 L365,18 L365,28 L385,28 L385,22 L405,22 L405,30 L425,30 L425,20 L445,20 L445,26 L465,26 L465,18 L485,18 L485,28 L505,28 L505,32 L525,32 L525,26 L545,26 L545,30 L570,30 L570,34 L600,34 L600,40 Z"/>
+    <line x1="61" y1="8" x2="61" y2="2" stroke="currentColor" stroke-width="0.8"/>
+    <line x1="141" y1="4" x2="141" y2="-2" stroke="currentColor" stroke-width="0.8"/>
+    <line x1="303" y1="2" x2="303" y2="-3" stroke="currentColor" stroke-width="0.8"/>
+  </svg>
+  <p>Bozza personale · 6 giorni · 35 tappe</p>
+  <p>Tap su qualsiasi tappa per i dettagli</p>
+</footer>
+
+<button class="fab" id="fab" aria-label="Torna su">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg>
+</button>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const ICONS = {
+  food: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11h18M3 11v3a4 4 0 0 0 4 4h10a4 4 0 0 0 4-4v-3M7 11V8a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3v3M5 21h14"/></svg>',
+  view: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 22h20M3 22V8l5-3 5 3 5-3 4 3v14M7 22V12M11 22V12M15 22V12M19 22V12"/></svg>',
+  night: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+  brk: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4z"/><line x1="6" y1="2" x2="6" y2="4"/><line x1="10" y1="2" x2="10" y2="4"/><line x1="14" y1="2" x2="14" y2="4"/></svg>',
+  walk: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="13" cy="4" r="2"/><path d="M15 22l-3-9-3 4-4-2M9 9l3-3 5 5-3 3"/></svg>'
+};
+
+const CTX_ICONS = {
+  rain: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 13v8M8 13v8M12 15v6M20 16.58A5 5 0 0 0 18 7h-1.26A8 8 0 1 0 4 15.25"/></svg>',
+  snack: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>',
+  backup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>'
+};
+
+// Mini skyline SVG used as divider between days
+const SKY_DIVIDER = `<svg class="sky-divider" viewBox="0 0 1200 30" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYEnd meet" aria-hidden="true"><path fill="currentColor" d="M0,30 L0,24 L30,24 L30,20 L60,20 L60,16 L80,16 L80,10 L88,10 L88,4 L92,4 L92,10 L110,10 L110,18 L140,18 L140,22 L165,22 L165,14 L190,14 L190,20 L215,20 L215,8 L228,8 L228,2 L232,2 L232,8 L260,8 L260,18 L290,18 L290,12 L320,12 L320,22 L350,22 L350,16 L380,16 L380,24 L410,24 L410,18 L440,18 L440,10 L470,10 L470,20 L500,20 L500,14 L530,14 L530,6 L555,6 L555,1 L558,1 L558,6 L585,6 L585,18 L615,18 L615,22 L645,22 L645,12 L675,12 L675,20 L705,20 L705,16 L735,16 L735,24 L765,24 L765,18 L795,18 L795,10 L825,10 L825,18 L855,18 L855,22 L885,22 L885,14 L915,14 L915,20 L945,20 L945,12 L975,12 L975,22 L1005,22 L1005,16 L1035,16 L1035,24 L1065,24 L1065,18 L1095,18 L1095,22 L1130,22 L1130,16 L1165,16 L1165,24 L1200,24 L1200,30 Z"/></svg>`;
+
+const IT = [
+  { n:1, date:'Mer 29 aprile', title:'Arrivo + 9th Ave + Top of the Rock',
+    narrative:'Arrivo JFK, check-in. Passeggiata su 9th Avenue per ambientarsi. Top of the Rock al tramonto e KBBQ a Koreatown.',
+    stops:[
+      {t:'14:00',d:90,name:'JFK → Hotel',type:'arrivo + check-in',k:'brk',lat:40.7579,lng:-73.9855,pid:null,addr:'330 W 40th St, Midtown West',note:'AirTrain + metro (E/A): ~$10 e 45 min. Taxi: ~$70 flat rate. AirTrain consigliato dopo un volo lungo per non rischiare il traffico.'},
+      {t:'16:30',d:90,name:'9th Avenue',type:'passeggiata Hell\'s Kitchen',k:'walk',lat:40.7620,lng:-73.9920,pid:'ChIJTZ_mZFJYwokRKaKaGN6HBqY',addr:'9th Ave tra 40th e 57th St',note:'La vostra strada di base per tutta la settimana. Prima passeggiata di orientamento: gastronomie internazionali, bar di quartiere, ristoranti. Guardate i menu esposti — utili per le serate successive.'},
+      {t:'19:00',d:90,name:'Top of the Rock',type:'observation deck',k:'view',tag:'must',lat:40.7593495,lng:-73.9794087,pid:'ChIJe7vKMf9YwokRIMYfDz7iF9o',addr:'30 Rockefeller Plaza',note:'Già prenotato. Tramonto 19:46 — sequenza giorno→tramonto→notte. Lato sud: Empire State e downtown. Lato nord: Central Park. A 70 piani fa freddo, portate una felpa.'},
+      {t:'20:45',d:90,name:'Jongro BBQ',type:'cena · KBBQ Koreatown',k:'food',lat:40.7476718,lng:-73.9869686,pid:'ChIJQ3Jl76hZwokRnS1-MQHYhZE',addr:'22 W 32nd St, 2° piano',tip:'Backup stesso edificio: Jongro Gopchang (5° piano) o Jongro all-you-can-eat (1° piano). Alternativa non KBBQ: Virgil\'s Real BBQ (152 W 44th).',note:'KBBQ al tavolo — esperienza unica a 32nd St. Ordinate marinated kalbi e pork belly. Dopocena: Times Square di sera a piedi, le insegne accese sono il punto.'}
+    ],
+    rainTitle:'Top of the Rock con pioggia leggera ✓',
+    rainBody:'Con pioggia leggera l\'observation deck ha un livello coperto e si fa. Con cielo molto basso o pioggia forte, <strong>verificate la modifica prenotazione appena atterrate</strong> (politica flessibile a 24h). Se rinviate: Times Square indoor + cena Koreatown invariata. Top of the Rock si sposta al primo giorno sereno.'
+  },
+  { n:2, date:'Gio 30 aprile', title:'Midtown + Central Park + Gantry + Katz\'s + Raoul\'s',
+    narrative:'Mattina Midtown classico. MoMA. 5th Avenue verso nord fino a Central Park nel pomeriggio dorato — tutto camminabile fino a Columbus Circle. Tramonto a Long Island City. Sera: Katz\'s Deli e poi cena tarda da Raoul\'s a SoHo con dopocena sul posto.',
+    stops:[
+      {t:'09:45',d:30,name:'Grand Central Terminal',type:'architettura',lat:40.7533582,lng:-73.9768041,pid:'ChIJhRwB-yFawokRi0AhGH87UTc',addr:'89 E 42nd St',note:'Main Concourse con luce mattutina dai finestroni. Il soffitto celeste è dipinto INVERTITO rispetto al cielo reale — ufficialmente errore, ufficiosamente prospettiva "divina". Whisper Gallery sotto le scale a volta: bisbiglio udibile a 30 metri.'},
+      {t:'10:30',d:35,name:'New York Public Library',type:'biblioteca · Rose Room',lat:40.7531823,lng:-73.9822534,pid:'ChIJqaiomQBZwokRTHOaUG7fUTs',addr:'476 5th Ave',note:'Rose Main Reading Room al 2° piano: soffitto affrescato, 15 metri di altezza. I leoni all\'ingresso si chiamano Patience e Fortitude. Esposizione "Treasures" al 1° piano vale 15 minuti.'},
+      {t:'11:15',d:25,name:'Bryant Park',type:'parco Midtown',k:'walk',lat:40.7535367,lng:-73.9829529,pid:'ChIJvbGg56pZwokRp_E3JbivnLQ',addr:'W 40th St & 6th Ave',note:'Il giardino sul retro della Library. Sedie verdi francesi, tavoli da ping pong, scacchiera gigante. Pop-up food a maggio. Caffè seduti prima del MoMA.'},
+      {t:'11:50',d:20,name:'St. Patrick\'s Cathedral',type:'cattedrale neogotica',lat:40.7586117,lng:-73.9761953,pid:'ChIJUW4vEPxYwokRW6o24DU0YIg',addr:'5th Ave & E 50th St',note:'Ingresso libero. Costruita nel 1879 in piena 5th Ave commerciale — il contrasto è il punto. Massimo 15-20 minuti.'},
+      {t:'14:00',d:120,name:'MoMA',type:'museo · prenotare',k:'view',tag:'book',lat:40.7614327,lng:-73.9776216,pid:'ChIJKxDbe_lYwokRVf__s8CPn-o',addr:'11 W 53rd St',note:'Prenotare su moma.org con orario specifico. 5° piano: Van Gogh "Notte stellata", Picasso "Les Demoiselles", Dalí, Monet. 4° piano: Pollock, Rothko, Warhol.'},
+      {t:'16:30',d:30,name:'5th Avenue → Columbus Circle',type:'passeggiata + shopping',k:'walk',lat:40.7685,lng:-73.9816,pid:'ChIJi7OoBQpYwokRsHVMd3JlMK4',addr:'5th Ave da 53rd a 59th + Columbus Circle',tip:'Se volete shopping: Saks, Bergdorf Goodman, Apple Store cubica sono tutti tra 49th e 58th St — già sulla vostra strada.',note:'Sei isolati a piedi dal MoMA verso Columbus Circle, lungo la 5th. Vetrine alte, atrio Trump Tower, Plaza Hotel a sud di Central Park. Arrivate a Columbus Circle che è l\'angolo sud-ovest del parco — ingresso naturale per la tappa successiva.'},
+      {t:'17:00',d:90,name:'Central Park',type:'golden hour · ingresso sud-ovest',k:'view',tag:'must',lat:40.7679,lng:-73.9810,pid:'ChIJ4zGFAZpYwokRGUGph3Mf37k',addr:'Da Columbus Circle a Bethesda Terrace',note:'Late afternoon in Central Park = la migliore luce della giornata. Itinerario: ingresso Merchants\' Gate (Columbus Circle) → Sheep Meadow (prati per sdraiarsi) → The Mall (viale di olmi americani, l\'unico viale "formale" del parco) → Bethesda Terrace (15.000 piastrelle Minton dipinte a mano — uniche al mondo usate come soffitto) → Bow Bridge → Strawberry Fields (Imagine mosaic, davanti al Dakota dove fu ucciso Lennon — spesso un musicista suona Beatles in loop). Uscita ovest 72nd St. Da qui taxi/metro per rientro hotel e cambio prima di Queens.'},
+      {t:'19:10',d:50,name:'Gantry Plaza State Park',type:'tramonto Queens',k:'view',lat:40.7420823,lng:-73.9604762,pid:'ChIJ7eAADSJawokRObgUbl1g6mk',addr:'4-44 47th Rd, Long Island City',note:'Tramonto 19:47. Metro linea 7 da Times Square → Court Sq (10 min) o East River Ferry da 34th St. Skyline Midtown frontale, gratis, spot da locals. Sul fiume fa fresco.'},
+      {t:'20:30',d:60,name:'Katz\'s Delicatessen',type:'must-try NYC',k:'food',tag:'must',lat:40.722233,lng:-73.987429,pid:'ChIJCar0f49ZwokR6ozLV-dHNTE',addr:'205 E Houston St, LES',note:'Fondato 1888. Pastrami su segale tagliato al bancone — il benchmark della città. Prendete il biglietto all\'ingresso (NON perdetelo, costa $50 perderlo). Il tavolo della scena di Harry ti saluto Sally ha un cartello. Cash consigliato. Aperto giovedì fino alle 23:00. Da Katz\'s a SoHo: 10 minuti a piedi.'},
+      {t:'22:30',d:120,name:'Raoul\'s',type:'cena tarda · bistro francese SoHo',k:'food',tag:'book',lat:40.7261816,lng:-74.0021307,pid:'ChIJBUwsto1ZwokRsW3Dy0Y1cO0',addr:'180 Prince St, SoHo',tip:'Se Katz\'s vi ha riempiti, salate la cena e venite solo per drink al bar.',note:'Bistro francese dal 1975, una delle istituzioni di SoHo. Steak au poivre leggendaria, atmosfera dark e affollata. Prenotazione fortemente consigliata. Aperto giovedì fino alle 23:00.'},
+      {t:'23:30',name:'Spring Lounge',type:'dopocena · dive bar',k:'night',lat:40.721904,lng:-73.996424,pid:'ChIJV6QByYhZwokR_LRSbt9s0gU',addr:'48 Spring St, SoHo',tip:'Backup se preferite cocktail più curati: Pegu Club o Dante (MacDougal St). Attaboy nel LES è a 10 min a piedi.',note:'A 3 minuti da Raoul\'s. Dive bar storico, niente pretese, ottimo per un drink dopo cena. Aperto fino alle 4:00.'}
+    ],
+    rainTitle:'Mattina invariata, tramonto a rischio',
+    rainBody:'Grand Central, Library, Bryant Park veloce, St. Patrick\'s, MoMA — <strong>tutti indoor</strong>. <strong>Central Park sotto pioggia leggera è ancora bello</strong> (atmosfera cinematografica) ma con pioggia forte: skip e prolungate il MoMA o aggiungete <strong>The Met</strong> (10 min a piedi dal MoMA verso est). Gantry Plaza senza cielo non ha senso → alternative: <strong>Top of the Rock se non fatto mercoledì</strong>, oppure <strong>The Press Lounge</strong> (Hell\'s Kitchen, 16°, parzialmente coperto e riscaldato). Cena Raoul\'s e dopocena SoHo: invariati.',
+    snacks:[
+      {zone:'Upper West Side · sulla rotta Central Park',items:[
+        {n:'Levain Bakery',a:'74th & Amsterdam Ave',d:'Cookies leggendari, 6oz l\'uno. A 2 isolati dall\'uscita ovest del parco.'},
+        {n:'Mama\'s Too',a:'Broadway UWS',d:'Pizza alla pala, ottima per uno slice tra MoMA e Central Park.'}
+      ]},
+      {zone:'SoHo · sera dopo Katz\'s',items:[
+        {n:'Eileen\'s Special Cheesecake',a:'17 Cleveland Pl',d:'NY cheesecake mini, alternativa Junior\'s. Aperto fino a tardi.'},
+        {n:'Luke\'s Lobster',a:'sede SoHo',d:'Lobster roll classico, se Katz\'s non vi ha sfondato.'}
+      ]}
+    ],
+    backups:[
+      {when:'Raoul\'s senza prenotazione',then:'The Odeon (145 W Broadway, Tribeca) — bistro francese storico dal 1980, ancora un\'istituzione. 5 min in taxi.'},
+      {when:'Spring Lounge troppo pieno',then:'Attaboy (134 Eldridge St, LES) — speakeasy senza menu, dicono cosa preferite. Pegu Club o Dante in alternativa.'}
+    ]
+  },
+  { n:3, date:'Ven 1 maggio', title:'Downtown + Tribeca + 230 Fifth + Somewhere Nowhere',
+    narrative:'Mattina Wall Street e 9/11, pranzo Smorgasburg WTC, pomeriggio a Tribeca. Break in hotel (unico della settimana). Serata in tre atti: aperitivo 230 Fifth al tramonto, cena Cookshop, notte a Somewhere Nowhere.',
+    stops:[
+      {t:'09:30',d:15,name:'Charging Bull',type:'Wall Street',k:'view',lat:40.7055746,lng:-74.0134499,pid:'ChIJURWoF5pYwokRIfXv4To528c',addr:'Bowling Green',note:'Foto rapida, 5 minuti. La statua del 1989 fu installata abusivamente di notte da Arturo Di Modica come dono alla città post-Black Monday. Il Comune voleva rimuoverla, i newyorkesi protestarono.'},
+      {t:'09:50',d:25,name:'Oculus',type:'hub Calatrava',k:'view',lat:40.7118042,lng:-74.0118498,pid:'ChIJ4f4VwT5bwokRwQ6hjfC-eTM',addr:'185 Greenwich St',note:'Costato $4 miliardi — il più costoso terminal ferroviario della storia. Free, 24/7. L\'apertura nel tetto lascia passare la luce solare esattamente alle 8:46 dell\'11 settembre ogni anno.'},
+      {t:'10:15',d:45,name:'9/11 Memorial Pools',type:'memoriale',k:'view',lat:40.7111026,lng:-74.0130975,pid:'ChIJuywwGBpawokRCb31xeHV66I',addr:'180 Greenwich St',note:'Le due cascate nelle impronte esatte delle Torri. Pannelli in bronzo con i nomi delle vittime. I visitatori si abbassano la voce da soli. Il museo sotterraneo è separato e a pagamento ($33).'},
+      {t:'11:15',d:75,name:'Smorgasburg WTC',type:'pranzo · SOLO gio/ven',k:'food',lat:40.7118635,lng:-74.0114221,pid:'ChIJVzRyz_VbwokRBIsZjBDCRCg',addr:'185 Greenwich St',note:'SOLO giovedì e venerdì, 11:00–18:00. 70+ vendor curati. Già siete lì dopo il Memorial. Backup pioggia: Eataly Downtown (101 Liberty St).'},
+      {t:'13:00',d:90,name:'Tribeca',type:'quartiere · cast-iron',k:'walk',lat:40.7162692,lng:-74.0086323,pid:'ChIJFaeLkx9awokRmCS-Bi9hU0U',addr:'Harrison St, N. Moore St, White St',note:'TRIangle BElow CAnal — il quartiere più costoso di Manhattan al mq. Iniziate da Harrison Street Row (23 Harrison): case federali del 1796, le più antiche file di case in pietra di NYC. Poi White Street e N. Moore Street: cast-iron buildings massicci. Washington Market Park per una sosta verde.'},
+      {t:'15:30',d:120,name:'Break hotel',type:'unico break della settimana',k:'brk',lat:40.7579,lng:-73.9855,pid:null,addr:'330 W 40th St',note:'L\'unico break in hotel del tour. Cambiatevi — la serata va da aperitivo a club fino alle 4:00.'},
+      {t:'18:30',d:90,name:'230 Fifth',type:'aperitivo · rooftop',k:'view',lat:40.7441081,lng:-73.9888201,pid:'ChIJ_1oyZaZZwokR1c-HIVJ3xzo',addr:'1150 Broadway, Flatiron',note:'Roof garden con vista Empire State Building a portata di mano (è a due isolati). Sunset 19:48 — primo drink al tramonto. No cover. Dresscode smart casual.'},
+      {t:'20:30',d:75,name:'Cookshop',type:'cena · farm-to-table',k:'food',lat:40.7456552,lng:-74.005422,pid:'ChIJZ-_BPZRZwokRBp_dcoCezqQ',addr:'156 10th Ave, Chelsea',tip:'Cookshop pieno? Tsumo Omakase (132 E 28th St) a 4 min da 230 Fifth — omakase di qualità.',note:'Americana farm-to-table dal 2005. Ingredienti stagionali. A 5 minuti a piedi da Somewhere Nowhere — logistica perfetta. Prenotazione consigliata. $45-60 a persona.'},
+      {t:'22:00',name:'Somewhere Nowhere',type:'serata · rooftop club',k:'night',tag:'book',lat:40.7443203,lng:-73.9926957,pid:'ChIJRYx-LctZwokRUGvx8Rg1LQA',addr:'112 W 25th St, 38°-39° piano',note:'Aperto venerdì fino alle 4:00. Lounge al 38° + rooftop con piscina al 39°. Vista Empire State da un lato, Hudson dall\'altro. Dresscode applicato.'}
+    ],
+    rainTitle:'Memorial più atmosferico, Smorgasburg cancellato',
+    rainBody:'Charging Bull e Oculus con ombrello, veloci. <strong>9/11 Memorial guadagna sotto la pioggia</strong> — l\'atmosfera è più potente. Smorgasburg WTC cancellato → <strong>Eataly Downtown</strong> (101 Liberty St) come sostituto food hall. Tribeca passeggiata: skip o sostituire con <strong>National Museum of the American Indian</strong> (Bowling Green, gratuito, edificio Beaux-Arts straordinario). 230 Fifth deludente con pioggia → anticipate cena Cookshop. Somewhere Nowhere ha lounge interna al 38° agibile.',
+    snacks:[
+      {zone:'Tribeca · pomeriggio',items:[
+        {n:'Square Diner',a:'33 Leonard St',d:'Diner storico in edificio triangolare, atmosfera cinematografica.'},
+        {n:'Bubby\'s',a:'120 Hudson St',d:'Brunch e pie classico americano. Ottimo se Smorgasburg vi è bastato come pranzo veloce.'}
+      ]}
+    ],
+    backups:[
+      {when:'Cookshop pieno',then:'Tsumo Omakase (132 E 28th St) — omakase di qualità a 4 min a piedi da 230 Fifth. $80-120 a persona.'},
+      {when:'Smorgasburg WTC cancellato',then:'Eataly Downtown (101 Liberty St) — al coperto, 2 minuti dal Memorial. Pizza, pasta, formaggi.'},
+      {when:'230 Fifth chiuso o pieno',then:'The Skylark (200 W 39th St) o Mr. Purple (180 Orchard St, LES) — entrambi rooftop bar con vista buona, no prenotazione obbligatoria.'}
+    ]
+  },
+  { n:4, date:'Sab 2 maggio', title:'Brooklyn + Lil\' Frankie\'s East Village',
+    narrative:'Williamsburg con vintage shops → DUMBO → Brooklyn Bridge → East Village. Giornata fluida geograficamente. Cena Lil\' Frankie\'s e dopocena al pub più vecchio di NYC.',
+    stops:[
+      {t:'09:30',d:90,name:'Bedford Avenue',type:'Williamsburg',k:'walk',lat:40.7170221,lng:-73.9562675,pid:'ChIJ2ZuYw11ZwokRrVlK1mXsCjo',addr:'Bedford Av (L train)',note:'Cuore di Williamsburg. Caffè specialty: Devoción (69 Grand St — torrefatto in loco, interno tropicale) o Toby\'s Estate. Esplorate Bedford Ave + Berry St + N6th-N7th.'},
+      {t:'11:00',d:60,name:'Vintage shops Williamsburg',type:'shopping vintage',k:'walk',lat:40.7236258,lng:-73.9525832,pid:'ChIJc3s0MV1ZwokR0I_e0seTOEo',addr:'Beacon\'s Closet · 74 Guernsey St',tip:'Aggiungete Buffalo Exchange (504 Driggs Ave) e L Train Vintage (204 N 6th St) se avete tempo. Tutti a 5-10 min l\'uno dall\'altro.',note:'Beacon\'s Closet (74 Guernsey St) è il riferimento assoluto: vintage curato a prezzi onesti, enorme. Si può passarci un\'ora senza accorgersene.'},
+      {t:'12:15',d:90,name:'Smorgasburg Williamsburg',type:'pranzo · SOLO sabato',k:'food',lat:40.7210981,lng:-73.9625824,pid:'ChIJ9-C4sWdZwokRjDucHJ5DepI',addr:'90 Kent Ave',note:'SOLO sabato 11:00–18:00. 70+ vendor con skyline Manhattan come sfondo. Must-try: Birria-Landia (tacos), Cinnamon Snail. Backup pioggia: Time Out Market DUMBO al coperto.'},
+      {t:'14:30',d:45,name:'Caffè a DUMBO',type:'sosta pomeridiana',k:'brk',lat:40.7023,lng:-73.989,pid:null,addr:'Brooklyn Roasting Co · 25 Jay St',note:'Specialty coffee in ex magazzino industriale con volte in mattone. Pausa naturale prima della camminata sul Bridge.'},
+      {t:'15:30',d:30,name:'Washington Street DUMBO',type:'foto iconica',k:'view',lat:40.7033165,lng:-73.9895698,pid:'ChIJd9SPZTFawokRh9NpOTE-G5k',addr:'Washington St & Front St',note:'Lo spot: Manhattan Bridge incornicia Empire State sullo sfondo. Luce pomeridiana ideale. Breve coda per la foto, scorre veloce.'},
+      {t:'16:15',d:50,name:'Brooklyn Bridge Park',type:'parco fronte fiume',k:'walk',lat:40.7022422,lng:-73.9958601,pid:'ChIJjaFpo0ZawokRBcOFUZ13CaE',addr:'Brooklyn',note:'Pier 1 ha la vista migliore su Lower Manhattan. Jane\'s Carousel (giostra anni \'20 in scatola di vetro). A piedi verso Brooklyn Heights Promenade.'},
+      {t:'17:30',d:50,name:'Brooklyn Heights Promenade',type:'sunset walk',k:'view',lat:40.6964173,lng:-73.9977463,pid:'ChIJkwX1AjdawokRx9reOccHFr4',addr:'Montague St & Pierrepont Pl',note:'Vista Lower Manhattan + Statua. Tramonto 19:50. Da qui al Brooklyn Bridge per la camminata serale (19:15) — skyline che si accende mentre camminate. Il punto è camminare verso la luce, non sostare.'},
+      {t:'20:30',d:75,name:'Lil\' Frankie\'s',type:'cena · pizza/pasta East Village',k:'food',tag:'must',lat:40.7236143,lng:-73.9884363,pid:'ChIJK2OWqJxZwokRVvZekLjy2wk',addr:'19 1st Ave, East Village',tip:'Backup: S\'MAC (197 1st Ave) — mac & cheese gourmet, 12+ varianti. Casual, $12-18 a piatto.',note:'Pizza al forno a legna e pasta italoamericana classica. Atmosfera vibrante, dim lighting, no reservations ma scorre. Aperto sabato fino alle 4:00. Spirito East Village autentico dopo una giornata lunga.'},
+      {t:'22:30',name:'McSorley\'s Old Ale House',type:'dopocena · pub 1854',k:'night',lat:40.7288053,lng:-73.9896791,pid:'ChIJGdCSd5tZwokRfYvMyzO7qtE',addr:'15 E 7th St, East Village',tip:'Solo cash. Solo due birre: light o dark. Niente cocktail, niente menu sofisticato — è il punto.',note:'Il pub più vecchio di NYC, fondato 1854. Segatura per terra, foto storiche su ogni parete, atmosfera 1800. A 4 minuti a piedi da Lil\' Frankie\'s. Backup: Death & Co (433 E 6th St) o PDT (113 St Marks Pl, ingresso da hotdog stand).'}
+    ],
+    rainTitle:'Vintage shops e Brooklyn Museum',
+    rainBody:'Vintage shopping Williamsburg: <strong>indoor, perfetto sotto pioggia</strong>. Smorgasburg cancellato → <strong>Time Out Market DUMBO</strong>. Foto Manhattan Bridge: la nebbia crea atmosfera cinematografica, vale comunque. Brooklyn Bridge walk con pioggia forte: skip → <strong>Brooklyn Museum</strong> (Eastern Pkwy, una delle collezioni più grandi USA — Egitto e arte americana eccellenti). Rientro East Village per cena Lil\' Frankie\'s: invariata, perfetta per sera piovosa.',
+    snacks:[
+      {zone:'Williamsburg · mattina',items:[
+        {n:'L\'Industrie Pizzeria',a:'254 S 2nd St',d:'Slice di pizza top a Brooklyn — burrata e prosciutto cotto la signature.'}
+      ]},
+      {zone:'DUMBO · pomeriggio',items:[
+        {n:'Juliana\'s Pizza',a:'19 Old Fulton St',d:'Pizza al forno a legna sotto il ponte. Patsy Grimaldi originale.'}
+      ]},
+      {zone:'Brooklyn Downtown · solo se passate',items:[
+        {n:'Junior\'s Cheesecake',a:'sede originale 1950',d:'NY cheesecake leggendaria, sede storica.'}
+      ]},
+      {zone:'East Village · sera',items:[
+        {n:'7th Street Burger',a:'East Village',d:'Smash burger NYC style, doppio formaggio, semplice e perfetto.'},
+        {n:'Tompkins Square Bagels',a:'East Village',d:'Bagels da quartiere, ottimi per colazione tarda.'}
+      ]}
+    ],
+    backups:[
+      {when:'Lil\' Frankie\'s troppo pieno',then:'S\'MAC (197 1st Ave, East Village) — mac & cheese gourmet in 12+ varianti, casual, prezzi onesti.'},
+      {when:'McSorley\'s troppo affollato',then:'Death & Co (433 E 6th St) — cocktail bar leggendario. PDT (113 St Marks Pl) — ingresso nascosto in un hotdog stand, prenotazione consigliata.'},
+      {when:'Smorgasburg cancellato',then:'Time Out Market DUMBO — al coperto, 30+ vendor selezionati. Vista Brooklyn Bridge dalle vetrate.'}
+    ]
+  },
+  { n:5, date:'Dom 3 maggio', title:'SoHo + Chelsea + Hudson River + Edge + Don Angie',
+    narrative:'SoHo mattina come prima tappa. Chelsea Market, Little Island, High Line, West Village. Pomeriggio con passeggiata Hudson River verso Hudson Yards al tramonto. Tramonto da Edge. Cena da Don Angie e dopocena Employees Only.',
+    stops:[
+      {t:'09:30',d:120,name:'SoHo',type:'mattina · cast-iron + shopping',k:'walk',lat:40.7245908,lng:-74.0019174,pid:'ChIJ8-JRXoxZwokRGPiQ9Ek0L84',addr:'Prince St, Spring St, Mercer, Greene',note:'Domenica mattina è il momento migliore: i negozi aprono verso le 11:00 ma la passeggiata vale anche prima per l\'architettura cast-iron. Brand: APC, Acne Studios, Aesop, Reformation. Architettura simile a Tribeca, più densa e commerciale.'},
+      {t:'12:00',d:75,name:'Chelsea Market',type:'food hall · Oreo nasce qui',k:'food',lat:40.7424396,lng:-74.0061439,pid:'ChIJw2lMFL9ZwokRosAtly52YX4',addr:'75 9th Ave, Chelsea',tip:'Star on 18 (128 10th Ave) come alternativa diner classico se Chelsea Market è troppo affollato.',note:'Ex stabilimento Nabisco dove nel 1912 fu inventato l\'Oreo. Los Tacos No.1: imperdibile. The Lobster Place. Seed+Mill (halva). Caffè da Ninth Street Espresso.'},
+      {t:'13:30',d:35,name:'Little Island',type:'parco sospeso sull\'Hudson',k:'view',tag:'must',lat:40.7420024,lng:-74.010299,pid:'ChIJL-CJmTFZwokRsPcqje_bn7w',addr:'Pier 55, W 13th St',note:'Free, accesso libero senza prenotazione. 5 minuti a piedi da Chelsea Market. 62 ft sopra l\'Hudson. Dal Southwest Overlook: Statua della Libertà, Lower Manhattan. 350+ specie vegetali, colonne a tulipano di Heatherwick Studio.'},
+      {t:'14:15',d:60,name:'The High Line',type:'parco lineare',k:'walk',lat:40.7479925,lng:-74.0047649,pid:'ChIJ5bQPhMdZwokRkTwKhVxhP1g',addr:'Da Gansevoort St a 34th St',note:'Da Little Island tornate a Gansevoort St (ingresso sud) e risalite a nord fino a Hudson Yards. Ex ferrovia sopraelevata riconvertita 2009 — ispirata alla Promenade Plantée parigina del 1993. Installazioni d\'arte lungo tutto il percorso.'},
+      {t:'15:30',d:75,name:'West Village',type:'strade più fotografate di NYC',k:'walk',lat:40.7350,lng:-74.0050,pid:'ChIJYZmCJIpZwokRsHVMd3JlMK4',addr:'Bedford St, Commerce St, Grove St',note:'Strade strette che rompono la griglia di Manhattan. Bedford Street 75½: la casa più stretta di NYC (2,9m). Commerce Street curva. Negozi indipendenti, wine bar, nessuna catena. Possibile sosta dolce/caffè.'},
+      {t:'16:45',d:90,name:'Hudson River Park',type:'passeggiata fronte fiume',k:'walk',lat:40.7438,lng:-74.0099,pid:null,addr:'Da Christopher St Pier verso 30th St',note:'Sostituisce Central Park (spostato a giovedì). Una delle camminate più belle di NYC al pomeriggio: parco lineare lungo l\'Hudson, ciclisti, pattinatori, vista Jersey, tramonto a sinistra mentre risalite. Pier 45 (Christopher St) con prati e tramonto. Pier 57 con rooftop pubblico libero. Termina naturalmente all\'ingresso di Hudson Yards. 30-45 min di cammino lento.'},
+      {t:'19:00',d:90,name:'Edge NYC',type:'observation deck',k:'view',tag:'must',lat:40.7533936,lng:-74.001055,pid:'ChIJ3aqq5Q1ZwokRb9hLO7Gyxgw',addr:'30 Hudson Yards',note:'Già prenotato. Tramonto 19:51. Glass floor sporgente sul vuoto. The Easel: pedana inclinata per le foto. The Climb (vela esterna) è extra.'},
+      {t:'20:45',d:90,name:'Don Angie',type:'cena · italiana must-try',k:'food',tag:'book',lat:40.7378037,lng:-74.0020939,pid:'ChIJfxC19JVZwokRX2uKgQAL17c',addr:'103 Greenwich Ave, West Village',tip:'Senza prenotazione: arrivate all\'apertura (17:30) e chiedete al bar. Backup: Via Carota (51 Grove St) — no reservations, italiana eccellente.',note:'Una delle migliori italiane di NYC. Cucina italoamericana rielaborata con tecnica moderna. PRENOTAZIONE OBBLIGATORIA su OpenTable. Must-try: chrysanthemum salad, calamari bbq, buffalo milk caramelle, lasagna iconica. $70-90 a persona.'},
+      {t:'22:30',name:'Employees Only',type:'dopocena · cocktail bar leggendario',k:'night',lat:40.7334346,lng:-74.0061109,pid:'ChIJLztrVJNZwokRTmcQJheGNR4',addr:'510 Hudson St, West Village',note:'Speakeasy dietro una vetrina di cartomante, aperto dal 2004. Uno dei migliori bar della città. Aperto fino alle 4:00. Aperto la domenica.'}
+    ],
+    rainTitle:'SoHo migliora, Edge a rischio',
+    rainBody:'SoHo mattina: <strong>migliora</strong> — meno gente, atmosfera più tranquilla. Chelsea Market indoor ✓. Little Island: skip. High Line con pioggia leggera fattibile, con pioggia forte: skip e sostituite con <strong>Whitney Museum</strong> (attaccato alla High Line, collezione 900-oggi top). Hudson River Park skip → ora extra al <strong>Whitney</strong> o pre-cena Employees Only. <strong>Edge: livello esterno potrebbe chiudere</strong> con vento forte. Verificate il giorno stesso. Alternativa: <strong>Summit One Vanderbilt</strong> ha livelli interni ed è quasi più spettacolare con cielo basso.',
+    snacks:[
+      {zone:'SoHo · mattina',items:[
+        {n:'Eileen\'s Special Cheesecake',a:'17 Cleveland Pl',d:'NY cheesecake mini, tour del cheesecake mattutino.'},
+        {n:'Luke\'s Lobster',a:'sede SoHo',d:'Lobster roll classico, ottimo come pre-pranzo.'}
+      ]},
+      {zone:'Chelsea · all\'esterno del Market',items:[
+        {n:'Star on 18',a:'128 10th Ave',d:'Diner classico vicino Chelsea Market, atmosfera anni \'50.'}
+      ]},
+      {zone:'West Village · pomeriggio',items:[
+        {n:'Magnolia Bakery',a:'Bleecker St',d:'Banana pudding iconico, da prendere e mangiare camminando.'},
+        {n:'Bleecker Street Pizza',a:'Bleecker St',d:'Slice classica, fermata veloce nel cuore del Village.'}
+      ]}
+    ],
+    backups:[
+      {when:'Don Angie senza prenotazione',then:'Via Carota (51 Grove St) — stessa zona, no reservations, italiana eccellente. Arrivare entro le 17:45 per evitare attese troppo lunghe.'},
+      {when:'Edge chiuso per vento',then:'Summit One Vanderbilt (45 E 42nd St) — esperienza diversa ma straordinaria, mirror room iconica. Ridislocate la serata: Don Angie spostata, dopocena West Village invariato.'},
+      {when:'Employees Only chiuso o pieno',then:'Dante (79-81 MacDougal St) — World\'s Best Bar 2019, negroni storici. Attaboy sul LES per qualcosa di più informale.'}
+    ]
+  },
+  { n:6, date:'Lun 4 maggio', title:'Colazione hotel + JFK',
+    narrative:'Mezza giornata leggera. Colazione in hotel, eventualmente souvenir 5th Avenue, check-out e JFK.',
+    stops:[
+      {t:'09:00',d:60,name:'Colazione in hotel',type:'mattina',k:'brk',lat:40.7579,lng:-73.9855,pid:null,addr:'330 W 40th St',note:'Niente Galaxy Diner. Mattina rilassata, valigie già quasi pronte.'},
+      {t:'10:30',d:60,name:'Bryant Park o 5th Ave',type:'opzionale · ultima passeggiata',k:'walk',lat:40.7535367,lng:-73.9829529,pid:'ChIJvbGg56pZwokRp_E3JbivnLQ',addr:'Bryant Park o 5th Ave',note:'Souvenir su 5th Ave o ultima sosta a Bryant Park — le sedie verdi francesi che avete incrociato giovedì mattina, per chiudere il cerchio. Opzionale.'},
+      {t:'11:30',d:30,name:'Check-out · bagagli',type:'hotel',k:'brk',lat:40.7579,lng:-73.9855,pid:null,addr:'330 W 40th St',note:'Check-out entro le 12:00. Bagagli al concierge se serve.'},
+      {t:'13:30',name:'Partenza JFK',type:'transfer',lat:40.6413,lng:-73.7781,pid:'ChIJz-5_rClwwokRla5G3t97cCw',addr:'JFK International Airport',note:'AirTrain + E/A: $10, 45-50 min. Taxi: ~$70 flat. Presentarsi 2h30 prima per voli internazionali. Volo 17:30.'}
+    ],
+    rainTitle:'Volo invariato, mattina indoor',
+    rainBody:'Mattina di partenza: con pioggia salate la passeggiata 5th Ave e fate una colazione lunga in hotel o caffè vicino. <strong>Bryant Park</strong> ha gazebo coperti se volete comunque uscire. Tempo extra in Grand Central (architettura) prima del taxi.',
+    backups:[
+      {when:'Mezza giornata extra (volo posticipato)',then:'Governors Island — ferry da Battery Maritime, $2 round-trip. Bici disponibili di solito da metà maggio (verificare govisland.com). Vista skyline ineguagliabile, perfetto per chiudere il viaggio.'},
+      {when:'Volo molto in ritardo',then:'The Met (5th Ave & 82nd St) — aperto fino alle 17:00 lunedì. Nuova ala egizia o impressionisti francesi. Da Midtown 15 min in taxi.'}
+    ]
+  }
+];
+
+// NAV
+const dnav = document.getElementById('daynav');
+IT.forEach(d => {
+  const b = document.createElement('button');
+  b.className = 'daynav-btn';
+  b.textContent = `0${d.n} · ${d.date.split(' ')[0]}`;
+  b.onclick = () => document.getElementById('day-'+d.n).scrollIntoView({behavior:'smooth',block:'start'});
+  dnav.appendChild(b);
+});
+
+// DAYS RENDER
+const cont = document.getElementById('days');
+const maps = {};
+IT.forEach((day,idx) => {
+  const sec = document.createElement('section');
+  sec.className = 'day';
+  sec.id = 'day-'+day.n;
+
+  const sh = day.stops.map((s,i) => {
+    const url = s.pid
+      ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.name)}&query_place_id=${s.pid}`
+      : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.addr)}`;
+    const ic = ICONS[s.k] || ICONS.walk;
+    const tagHtml = s.tag === 'must' ? '<span class="stop-tag must">Must-try</span>' : s.tag === 'book' ? '<span class="stop-tag book">Prenotare</span>' : '';
+    return `<article class="stop${s.k==='brk'?' is-break':''}" data-i="${day.n}-${i}">
+      <div class="stop-icon ${s.k||''}">${ic}</div>
+      <div class="stop-body">
+        <div class="stop-meta-top">
+          <span class="stop-time">${s.t||'—'}</span>
+          ${s.d?`<span class="stop-dur">${s.d} min</span>`:''}
+          ${tagHtml}
+        </div>
+        <div class="stop-name">${s.name}<span class="xi"></span></div>
+        <div class="stop-type">${s.type}</div>
+        <div class="stop-details">
+          <p class="stop-note">${s.note}</p>
+          ${s.tip?`<div class="tip-box"><div class="tip-label">Alternativa</div><div class="tip-content">${s.tip}</div></div>`:''}
+          <div class="stop-addr">${s.addr}</div>
+          <a class="maps-btn" href="${url}" target="_blank" rel="noopener">Apri in Maps</a>
+        </div>
+      </div>
+    </article>`;
+  }).join('');
+
+  // Contextual boxes (rain, snacks, backups) — distributed per day
+  const ctxBoxes = [];
+
+  if(day.rainTitle){
+    ctxBoxes.push(`<div class="ctx ctx-rain">
+      <div class="ctx-header">
+        <div class="ctx-icon">${CTX_ICONS.rain}</div>
+        <div class="ctx-label">Piano pioggia</div>
+      </div>
+      <div class="ctx-title">${day.rainTitle}</div>
+      <div class="ctx-body">${day.rainBody}</div>
+    </div>`);
+  }
+
+  if(day.snacks && day.snacks.length){
+    const zonesHtml = day.snacks.map(z=>`
+      <div class="snack-zone-tag">${z.zone}</div>
+      <ul class="snack-list">
+        ${z.items.map(it=>`<li><strong>${it.n}</strong> · ${it.a}<small>${it.d}</small></li>`).join('')}
+      </ul>
+    `).join('');
+    ctxBoxes.push(`<div class="ctx ctx-snack">
+      <div class="ctx-header">
+        <div class="ctx-icon">${CTX_ICONS.snack}</div>
+        <div class="ctx-label">Spuntini in zona</div>
+      </div>
+      <div class="ctx-body">${zonesHtml}</div>
+    </div>`);
+  }
+
+  if(day.backups && day.backups.length){
+    const bkHtml = day.backups.map(b=>`
+      <div class="bk">
+        <div class="bk-when">${b.when}</div>
+        <div class="bk-then">${b.then}</div>
+      </div>
+    `).join('');
+    ctxBoxes.push(`<div class="ctx ctx-backup">
+      <div class="ctx-header">
+        <div class="ctx-icon">${CTX_ICONS.backup}</div>
+        <div class="ctx-label">Backup locali</div>
+      </div>
+      <div class="bk-list">${bkHtml}</div>
+    </div>`);
+  }
+
+  const ctxGroup = ctxBoxes.length ? `<div class="ctx-group">${ctxBoxes.join('')}</div>` : '';
+
+  // Skyline divider only between days (not before first)
+  const dividerHtml = idx > 0 ? SKY_DIVIDER : '';
+
+  sec.innerHTML = `
+    ${dividerHtml}
+    <div class="day-header">
+      <div class="day-num">0${day.n}</div>
+      <div class="day-info">
+        <div class="day-date">${day.date}</div>
+        <div class="day-title">${day.title}</div>
+      </div>
+    </div>
+    <p class="day-narrative">${day.narrative}</p>
+    <div class="day-controls">
+      <button class="dc-btn" data-day="${day.n}" data-action="expand">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+        Apri tutto
+      </button>
+      <button class="dc-btn" data-day="${day.n}" data-action="collapse">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+        Chiudi tutto
+      </button>
+    </div>
+    <div class="map loading" id="map-${day.n}"></div>
+    <div class="stops">${sh}</div>
+    ${ctxGroup}
+  `;
+  cont.appendChild(sec);
+});
+
+// EXPAND single stop
+document.querySelectorAll('.stop').forEach(s => s.addEventListener('click', e => { if(e.target.tagName==='A')return; s.classList.toggle('open'); }));
+
+// EXPAND ALL / COLLAPSE ALL
+document.querySelectorAll('.dc-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const dayN = btn.dataset.day;
+    const action = btn.dataset.action;
+    const stops = document.querySelectorAll(`#day-${dayN} .stop`);
+    stops.forEach(s => {
+      if(action === 'expand') s.classList.add('open');
+      else s.classList.remove('open');
+    });
+  });
+});
+
+// MAP
+const dark = window.matchMedia('(prefers-color-scheme:dark)').matches;
+const tb = dark?'https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png':'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png';
+const tl = dark?'https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png':'https://{s}.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}{r}.png';
+
+const initMap = day => {
+  if(typeof L==='undefined') return;
+  const id='map-'+day.n;
+  const el=document.getElementById(id);
+  if(!el || maps[id]) return;
+  const pts = day.stops.map(s=>[s.lat,s.lng]);
+  const map = L.map(id,{zoomControl:false,attributionControl:false,tap:true}).setView(pts[0],13);
+  L.control.zoom({position:'bottomright'}).addTo(map);
+  L.tileLayer(tb,{subdomains:'abcd',maxZoom:19}).addTo(map);
+  L.tileLayer(tl,{subdomains:'abcd',maxZoom:19}).addTo(map);
+  L.polyline(pts,{color:dark?'#f15a3c':'#c8442d',weight:2.5,opacity:.45,dashArray:'4 6'}).addTo(map);
+  day.stops.forEach((s,i)=>{
+    const cls=s.k==='food'?'food':s.k==='view'?'view':s.k==='night'?'night':s.k==='brk'?'brk':'';
+    const icon=L.divIcon({className:'',html:`<div class="pin-marker ${cls}">${i+1}</div>`,iconSize:[30,30],iconAnchor:[15,15]});
+    L.marker([s.lat,s.lng],{icon}).addTo(map).bindPopup(`<strong>${s.name}</strong><br><small style="color:#888">${s.t||''}${s.d?' · '+s.d+'min':''}</small>`,{closeButton:false});
+  });
+  if(pts.length>1) map.fitBounds(L.latLngBounds(pts),{padding:[30,30]});
+  el.classList.remove('loading');
+  maps[id]=map;
+};
+
+// LAZY MAPS
+document.querySelectorAll('.day').forEach(d=>{
+  new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const n = parseInt(e.target.id.split('-')[1]);
+        const day = IT.find(x=>x.n===n);
+        if(day) initMap(day);
+      }
+    });
+  },{rootMargin:'400px'}).observe(d);
+});
+
+// ACTIVE NAV
+document.querySelectorAll('.day').forEach(d=>{
+  new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(e.isIntersecting){
+        const n = parseInt(e.target.id.split('-')[1]);
+        document.querySelectorAll('.daynav-btn').forEach((b,i)=>b.classList.toggle('active',i===n-1));
+      }
+    });
+  },{rootMargin:'-30% 0px -60% 0px'}).observe(d);
+});
+
+// FAB SCROLL TOP
+const fab = document.getElementById('fab');
+window.addEventListener('scroll', ()=>{
+  fab.classList.toggle('visible', window.scrollY > 600);
+}, {passive:true});
+fab.addEventListener('click', ()=> window.scrollTo({top:0, behavior:'smooth'}));
+</script>
+</body>
+</html>
